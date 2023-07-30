@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "idiotproofing",
+  "version": "${version}",
+  "name": "IdiotProofing",
+  "description": "this is a mod made specifically for GreatGourdius and BeafMan, because they are idiots.",
+  "authors": [],
+  "contact": {
+    "repo": "https://github.com/BluSpring/IdiotProofing"
+  },
+  "license": "MIT",
+  "icon": "assets/IdiotProofing/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "xyz.bluspring.idiotproofing.client.IdiotProofingClient"
+    ],
+    "main": [
+      "xyz.bluspring.idiotproofing.IdiotProofing"
+    ]
+  },
+  "mixins": [
+    "IdiotProofing.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": ">=1.18"
+  }
+}
