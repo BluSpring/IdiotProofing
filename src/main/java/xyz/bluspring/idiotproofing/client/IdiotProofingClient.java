@@ -21,6 +21,7 @@ public class IdiotProofingClient implements ClientModInitializer {
             byteBuf.writeInt(FabricLoader.getInstance().getAllMods().size());
             for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
                 byteBuf.writeUtf(mod.getMetadata().getId());
+                byteBuf.writeUtf(mod.getMetadata().getVersion().getFriendlyString());
             }
 
             return CompletableFuture.completedFuture(byteBuf);
