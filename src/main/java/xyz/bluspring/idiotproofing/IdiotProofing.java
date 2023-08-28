@@ -1,11 +1,11 @@
 package xyz.bluspring.idiotproofing;
 
 import com.mojang.datafixers.util.Pair;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerLoginNetworking;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.Version;
@@ -27,8 +27,13 @@ public class IdiotProofing implements ModInitializer {
     @Override
     public void onInitialize() {
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
-            if (mod.getMetadata().getEnvironment() == ModEnvironment.UNIVERSAL)
-                requiredMods.add(Pair.of(mod.getMetadata().getId(), mod.getMetadata().getVersion()));
+            var entryPoints = FabricLoader.getInstance().getEntrypointContainers("client", ClientModInitializer.class);
+
+            if (mod.getMetadata().getEnvironment() == ModEnvironment.UNIVERSAL) {
+                // Double check to make sure the mod is supported on the client-side too
+                if (entryPoints.stream().anyMatch(ep -> ep.getProvider().getMetadata().getId().equals(mod.getMetadata().getId())))
+                    requiredMods.add(Pair.of(mod.getMetadata().getId(), mod.getMetadata().getVersion()));
+            }
         }
 
         ServerLoginConnectionEvents.QUERY_START.register((handler, server, sender, synchronizer) -> {
