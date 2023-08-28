@@ -1,5 +1,6 @@
 package xyz.bluspring.idiotproofing;
 
+import com.google.common.io.Files;
 import com.mojang.datafixers.util.Pair;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
@@ -14,20 +15,39 @@ import net.fabricmc.loader.api.metadata.ModEnvironment;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class IdiotProofing implements ModInitializer {
-    private static List<Pair<String, Version>> requiredMods = new LinkedList<>();
+    private static final List<Pair<String, Version>> requiredMods = new LinkedList<>();
+    private static final List<String> excluded = new LinkedList<>();
 
     /**
      * Runs the mod initializer.
      */
     @Override
     public void onInitialize() {
+        var file = new File(FabricLoader.getInstance().getConfigDir().toFile(), "idiotproofing_excludes.txt");
+
+        if (file.exists()) {
+            try {
+                var lines = Files.readLines(file, Charset.defaultCharset());
+                for (String line : lines) {
+                    excluded.add(line.trim());
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        var entryPoints = FabricLoader.getInstance().getEntrypointContainers("client", ClientModInitializer.class);
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
-            var entryPoints = FabricLoader.getInstance().getEntrypointContainers("client", ClientModInitializer.class);
+            if (excluded.contains(mod.getMetadata().getId()))
+                continue;
 
             if (mod.getMetadata().getEnvironment() == ModEnvironment.UNIVERSAL) {
                 // Double check to make sure the mod is supported on the client-side too
