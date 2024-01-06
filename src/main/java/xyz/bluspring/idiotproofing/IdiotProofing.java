@@ -18,19 +18,46 @@ import net.minecraft.resources.ResourceLocation;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class IdiotProofing implements ModInitializer {
     private static final List<Pair<String, Version>> requiredMods = new LinkedList<>();
+    private static final List<String> included = new LinkedList<>();
     private static final List<String> excluded = new LinkedList<>();
+    private static final List<String> unsupported = new LinkedList<>();
+    private static final Properties properties = new Properties();
 
     /**
      * Runs the mod initializer.
      */
     @Override
     public void onInitialize() {
+        var configFile = new File(FabricLoader.getInstance().getConfigDir().toFile(), "idiotproofing.properties");
+
+        properties.setProperty("includes", "");
+        properties.setProperty("excludes", "");
+        properties.setProperty("unsupported", "");
+
+        if (configFile.exists()) {
+            try {
+                properties.load(Files.newReader(configFile, Charset.defaultCharset()));
+
+                included.addAll(Arrays.stream(properties.getProperty("includes", "").split(",")).toList());
+                excluded.addAll(Arrays.stream(properties.getProperty("excludes", "").split(",")).toList());
+                unsupported.addAll(Arrays.stream(properties.getProperty("unsupported", "").split(",")).toList());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                configFile.createNewFile();
+
+                properties.store(Files.newWriter(configFile, Charset.defaultCharset()), "");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         var file = new File(FabricLoader.getInstance().getConfigDir().toFile(), "idiotproofing_excludes.txt");
 
         if (file.exists()) {
@@ -47,6 +74,9 @@ public class IdiotProofing implements ModInitializer {
         var entryPoints = FabricLoader.getInstance().getEntrypointContainers("client", ClientModInitializer.class);
         for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
             if (excluded.contains(mod.getMetadata().getId()))
+                continue;
+
+            if (!included.isEmpty() && !included.contains(mod.getMetadata().getId()))
                 continue;
 
             if (mod.getMetadata().getEnvironment() == ModEnvironment.UNIVERSAL) {
@@ -70,6 +100,7 @@ public class IdiotProofing implements ModInitializer {
             var totalFound = 0;
             var foundMods = new ArrayList<String>();
             var mismatches = new ArrayList<Pair<String, Version>>();
+            var unsupportedMods = new ArrayList<String>();
 
             for (int i = 0; i < totalMods; i++) {
                 var modId = buf.readUtf();
@@ -92,6 +123,21 @@ public class IdiotProofing implements ModInitializer {
                     totalFound++;
                     foundMods.add(modId);
                 }
+
+                if (unsupported.stream().anyMatch(a -> a.equals(modId))) {
+                    unsupportedMods.add(modId);
+                }
+            }
+
+            if (!unsupportedMods.isEmpty()) {
+                StringBuilder message = new StringBuilder();
+
+                for (String mod : unsupportedMods) {
+                    message.append(mod + "\n");
+                }
+
+                handler.disconnect(Component.literal("you have unsupported mods: \n" + message));
+                return;
             }
 
             if (totalFound < requiredMods.size()) {
